@@ -1,0 +1,93 @@
+worlds:
+  world:
+    general:
+      enable: false
+      enableColdSource: false
+      enableHeatSource: false
+      enableOpenAudioMC: false
+      enableProjectKorra: false
+      enableProtection: false
+      enableRegions: false
+      enableSheltering: false
+      enableWorlds: false
+      
+    temperature:
+      defaultTemperature: "MIXED"
+      temperatureDegree: "C" #(C)elsius or (F)ahrenheit
+      temperatureFluctuationRange: 5
+      enableTemperatureEffects: true 
+      enableTemperatureNightChange: true
+
+
+      coldTemperatureRange: "-40,-10"
+      coolTemperatureRange: "-9,0"
+      mixedTemperaturerange: "1-15"
+      warmTemperatureRange: "-16,30"
+      hotTemperatureRange: "31,50"
+
+      axis: #First in List Overrides Second which Overrides Third in List
+        - "Z"
+        - "Y"
+      rangeX:
+      rangeY:  
+        "320,250": "COLD"
+        "249,100": "COOL"
+        "100,20": "MIXED"
+        "20,-40": "WARM"
+        "-40,-100": "HOT"
+      rangeZ:
+        "12,34": "COLD"
+        "35,60": "COOL"
+
+  
+    seasons: 
+      enableSeasons: true
+      seasonLength: 30 # Number of in-game days per season
+      seasonPeak: 15 #When temperature is at highest/lowest
+      enableSeasonalWeather: true # Weather follows frequency in each season
+
+      coldSeasons: 
+      - "COOL": "SUNNY.40+CLOUDY.30+RAIN.30"
+      - "COLD": "SUNNY.20+CLOUDY.40+SNOW.30+SNOWSTORM.10"
+      - "COLD": "SNOW.40+SNOWSTORM.30+CLOUDY.20+SUNNY.10"
+      - "COOL": "SUNNY.34+CLOUDY.33+SNOW.33"
+      coolSeasons:
+      - "WARM": "SUNNY.40+RAIN.30+HUMID.10+CLOUDY.20"
+      - "COOL": "SUNNY.30+CLOUDY.30+RAIN.20+SNOW.20"
+      - "COLD": "SUNNY.30+SNOW.30+CLOUDY.25+SNOWSTORM.15"
+      - "COOL": "CLOUDY.30+SNOW.30+RAIN.20+SUNNY.30"
+      mixedSeasons:
+      - "HOT": "SUNNY.40+DRY.30+HUMID.20+RAIN.10"
+      - "COOL": "SUNNY.30+CLOUDY.30+RAIN.20+RAINSTORM.20"
+      - "COLD": "CLOUDY.30+SNOW.30+SNOWSTORM.15+SUNNY.25"
+      - "WARM": "SUNNY.40+RAIN.30+HUMID.10+CLOUDY.20"
+      warmSeasons:
+      - "HOT": "SUNNY.50+DRY.30+HUMID.10+RAIN.10"
+      - "WARM": "SUNNY.40+RAIN.30+HUMID.20+CLOUDY.10"
+      - "COOL": "SUNNY.30+CLOUDY.30+RAIN.20+RAINSTORM.20"
+      - "WARM": "SUNNY.40+RAIN.30+HUMID.20+CLOUDY.10"
+      hotSeasons:
+      - "HOT": "SUNNY.50+DRY.30+HUMID.10+RAIN.10"
+      - "WARM": "SUNNY.40+RAIN.30+HUMID.20+CLOUDY.10"
+      - "WARM": "SUNNY.50+RAIN.20+HUMID.10+CLOUDY.10"
+      - "HOT": "SUNNY.50+DRY.25+HUMID.20+RAIN.5"
+
+      nightEffectChanges:
+        coldMultiplier: 1.5
+        coolMultiplier: 1.3
+        warmMultiplier: 0.5
+        hotMultiplier: 0.2
+    
+    weather:
+      enableWeatherChanges: true
+      weatherChangeInterval: 600 #Interval in seconds for weather changes
+    
+    sheltering:
+      enableShelterDetection: true 
+      shelterEffectRadius: 5
+    
+    player:
+      enableWeatherEffects: true
+      weatherEffectStrength: 1.0
+      enableTemperatureEffects: true 
+      temperatureEffectStrength: 1.0
