@@ -1,4 +1,4 @@
-package com.maplecoding.Utilities;
+package com.maplecoding.avweather.Utilities;
 
 import java.util.Map;
 

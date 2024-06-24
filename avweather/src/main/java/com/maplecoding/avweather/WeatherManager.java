@@ -1,13 +1,11 @@
-package com.maplecoding;
+package com.maplecoding.avweather;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class WeatherManager {
-    private final JavaPlugin plugin;
     // Get AudioAPI
 
     public enum Temperature {
@@ -23,7 +21,6 @@ public class WeatherManager {
     }
 
     public WeatherManager(JavaPlugin plugin) {
-        this.plugin = plugin;
         // Initialize AudioAPI
     }
 

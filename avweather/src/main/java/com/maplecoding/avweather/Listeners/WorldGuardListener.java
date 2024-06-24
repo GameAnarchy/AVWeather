@@ -1,4 +1,4 @@
-package com.maplecoding.Listeners;
+package com.maplecoding.avweather.Listeners;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
