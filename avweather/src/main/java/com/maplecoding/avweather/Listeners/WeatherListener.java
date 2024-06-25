@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -20,10 +21,12 @@ import net.md_5.bungee.api.ChatColor;
 public class WeatherListener implements Listener{
     
     private final FileConfiguration worldConfig;
+    private final WeatherController weatherController;
     private final Map<Player, String> playerTemperatures = new HashMap<>();
 
-    public WeatherListener(ConfigHandler worldHandler){
+    public WeatherListener(ConfigHandler worldHandler, WeatherController weatherController){
         this.worldConfig = worldHandler.getConfig();
+        this.weatherController = weatherController;
     }
 
     //Get Player Temperature in location they joined
@@ -34,7 +37,14 @@ public class WeatherListener implements Listener{
     public void onPlayerJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         Location loc = p.getLocation();
-        String key = "worlds.world.temperature.";
+        World world = p.getWorld();
+
+        //Ignore if incorrect world
+        if(!world.getName().equals(weatherController.getWorld())) {
+            return;
+        }
+
+        String key = "worlds."+ loc.getWorld().getName() +".temperature.";
 
         //Check Temperature of Player's Z Range or default Temperature
         //And add them to the Map
@@ -55,14 +65,19 @@ public class WeatherListener implements Listener{
     //Get Player Temperature on Region Change or default Temperature
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent e) {
-       
+        
+        World world = e.getPlayer().getLocation().getWorld();
+        //Ignore if incorrect world
+        if(!world.getName().equals(weatherController.getWorld())) {
+            return;
+        }
         //Only check temp if player moved a block
         Location from = e.getFrom();
         Location to = e.getTo();
         if((from.getZ() != to.getZ()) || (from.getY() != to.getY()) || (from.getX() != to.getX())) {
 
             Player p = e.getPlayer();
-            String key = "worlds.world.temperature.";
+            String key = "worlds." + p.getLocation().getWorld().getName() + ".temperature.";
 
             //Check Temperature of Player's Z Range
             ConfigurationSection rangeZ = worldConfig.getConfigurationSection(key+"rangeZ");
@@ -73,7 +88,7 @@ public class WeatherListener implements Listener{
             if(previousTemperature != null && currentTemperature != previousTemperature) {
                 playerTemperatures.put(p, currentTemperature);
                 //Get Season
-                
+
                 sendTemperatureMessage(p, currentTemperature);
             }
             
@@ -107,7 +122,7 @@ public class WeatherListener implements Listener{
             }
         }
         //Get default temperature if not in a range or range is null
-        String key = "worlds.world.temperature.defaultTemperature";
+        String key = "worlds." + loc.getWorld().getName() + ".temperature.defaultTemperature";
         String defaultTemperature = worldConfig.getString(key);
         return defaultTemperature;
         
@@ -115,24 +130,42 @@ public class WeatherListener implements Listener{
 
     public void sendTemperatureMessage(Player p, String temperature) {
         
+        String currentSeason = weatherController.getTemperatureArea(temperature).getCurrentSeason().getName();
+        String currentWeather = weatherController.getTemperatureArea(temperature).getCurrentWeather();
+
         switch(temperature) {
             case "HOT":
                 temperature = ChatColor.RED + temperature + ChatColor.RED;
                 break;
             case "WARM":
-            temperature = ChatColor.GOLD + temperature + ChatColor.GOLD;
-            break;
-            case "MIXED":
-            temperature = ChatColor.GREEN + temperature + ChatColor.GREEN;
-            break;
+                temperature = ChatColor.GOLD + temperature + ChatColor.GOLD;
+                break;
+            case "TEMPERATE":
+                temperature = ChatColor.GREEN + temperature + ChatColor.GREEN;
+                break;
             case "COOL":
                 temperature = ChatColor.BLUE + temperature + ChatColor.BLUE;
                 break;
             case "COLD":
-            temperature = ChatColor.DARK_BLUE + temperature + ChatColor.DARK_BLUE;
-            break;
+                temperature = ChatColor.DARK_BLUE + temperature + ChatColor.DARK_BLUE;
+                break;
         }
 
-        p.sendTitle(temperature, "", 10, 70, 20);
+        String subtitle = currentSeason + " | " + currentWeather;
+        switch(currentSeason) {
+            case "COLD":
+                subtitle = ChatColor.BLUE + subtitle;
+                break;
+            case "COOL": 
+                subtitle = ChatColor.AQUA + subtitle;
+                break;
+            case "WARM":
+                subtitle = ChatColor.YELLOW + subtitle;
+            case "HOT":
+                subtitle = ChatColor.GOLD + subtitle;
+        }
+
+        p.sendTitle(temperature, subtitle, 10, 70, 20);
     }
+
 }

@@ -56,16 +56,9 @@ public class ConfigHandler {
                     // Temperature Settings
                     setting = "temperature.";
                     key = world + setting;
-                    config.set(key+"defaultTemperature", "MIXED");
-                    config.set(key+"temperatureDegree", "C");
-                    config.set(key+"temperatureFluctuationRange", 5);
+                    config.set(key+"defaultTemperature", "TEMPERATE");
                     config.set(key+"enableTemperatureEffects", true);
                     config.set(key+"enableTemperatureNightChange", true);
-                    config.set(key+"coldTemperatureRange", "-40,-10");
-                    config.set(key+"coolTemperatureRange", "-9,0");
-                    config.set(key+"mixedTemperaturerange", "1-15");
-                    config.set(key+"warmTemperatureRange", "-16,30");
-                    config.set(key+"hotTemperatureRange", "31,50");
                     config.set(key+"axis", Arrays.asList("Z"));
                     
                     Map<String,String> temperatureRangeX = new HashMap<>();
@@ -75,11 +68,11 @@ public class ConfigHandler {
                     config.set(key+"rangeY", temperatureRangeY);
 
                     Map<String,String> temperatureRangeZ = new HashMap<>();
-                    temperatureRangeZ.put("-176,179", "COLD");
-                    temperatureRangeZ.put("-180,-183","COOL");
-                    temperatureRangeZ.put("-184,-187", "MIXED");
-                    temperatureRangeZ.put("-188,-191", "WARM");
-                    temperatureRangeZ.put("-192,-195", "HOT");
+                    temperatureRangeZ.put("-179,-176", "COLD");
+                    temperatureRangeZ.put("-183,-180","COOL");
+                    temperatureRangeZ.put("-187,-184", "TEMPERATE");
+                    temperatureRangeZ.put("-191,-188", "WARM");
+                    temperatureRangeZ.put("-195,-192", "HOT");
                     config.set(key+"rangeZ", temperatureRangeZ);
                    
                     
@@ -88,21 +81,26 @@ public class ConfigHandler {
                     key = world + setting;
                     config.set(key+"enableSeasons", true);
                     config.set(key+"seasonLength", 30);
-                    config.set(key+"seasonPeak", 15);
+                    config.set(key+"currentDay", 1);
+                    config.set(key+"dayTicksLength", (long)24000);
+                    config.set(key+"checkTimeInterval", 5);
                     config.set(key+"enableSeasonalWeather", true);
 
+                    key = world + setting + "temperatureAreas.";
                     Map<String,String> coldSeasons = new HashMap<>();
-                    coldSeasons.put("1_COOL","SUNNY.40+CLOUDY.30+RAIN.30");
-                    coldSeasons.put("2_COLD", "SUNNY.20+CLOUDY.40+SNOW.30+SNOWSTORM.10");
-                    coldSeasons.put("3_COLD", "SNOW.40+SNOWSTORM.30+CLOUDY.20+SUNNY.10");
-                    coldSeasons.put("4_COOL", "SUNNY.34+CLOUDY.33+SNOW.33");
-                    config.set(key+"coldSeasons", coldSeasons);
+                    coldSeasons.put("0_COOL","SUNNY.40+CLOUDY.30+RAIN.30");
+                    coldSeasons.put("1_COLD", "SUNNY.20+CLOUDY.40+SNOW.30+SNOWSTORM.10");
+                    coldSeasons.put("2_COLD", "SNOW.40+SNOWSTORM.30+CLOUDY.20+SUNNY.10");
+                    coldSeasons.put("3_COOL", "SUNNY.34+CLOUDY.33+SNOW.33");
+                    config.set(key+"COLD.selected", 0);
+                    config.set(key+"COLD", coldSeasons);
 
                     // Weather Settings
                     setting = "weather.";
                     key = world + setting;
                     config.set(key+"enableWeatherChanges", true);
                     config.set(key+"weatherChangeInterval", 600);
+                    config.set(key+"defaultWeather", "SUNNY");
 
 
                     // Sheltering Settings
