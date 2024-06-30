@@ -1,4 +1,4 @@
-package com.maplecoding.avweather.Listeners;
+package com.maplecoding.avweather.Handlers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +13,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.maplecoding.avweather.Handlers.ConfigHandler;
 import com.maplecoding.avweather.Utilities.Season;
 import com.maplecoding.avweather.Utilities.TemperatureArea;
 
@@ -28,7 +27,6 @@ public class WeatherController {
     private long currentTimeTicks = 0;
     private long previousTimeTicks = 0;
     private int timeCheckInterval = 5;
-    private long dayTicksLength = 24000L;
 
     private Logger LOGGER = Logger.getLogger("AvWeather");
 
@@ -50,8 +48,6 @@ public class WeatherController {
         this.worldConfig = this.worldHandler.getConfig();
         
         this.key = "worlds." + world.getName() + ".seasons.";
-        
-        this.dayTicksLength = worldConfig.getLong(key+"dayTicksLength");
         this.currentDay = worldConfig.getInt(key+"currentDay");
         this.seasonLength = worldConfig.getInt(key+"seasonLength");
         this.timeCheckInterval = worldConfig.getInt(key+"checkTimeInterval");
@@ -147,8 +143,12 @@ public class WeatherController {
         return temperatureAreas.get(areaName);
     }
 
-    public String getWorld() {
+    public String getWorldName() {
         return world.getName();
+    }
+
+    public World getWorld() {
+        return world;
     }
 
     public void startTimeScheduler() {

@@ -9,7 +9,8 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.maplecoding.avweather.Handlers.ConfigHandler;
-import com.maplecoding.avweather.Listeners.WeatherController;
+import com.maplecoding.avweather.Handlers.EffectsTimer;
+import com.maplecoding.avweather.Handlers.WeatherController;
 import com.maplecoding.avweather.Listeners.WeatherListener;
 import com.maplecoding.avweather.Listeners.WorldGuardListener;
 
@@ -22,6 +23,7 @@ public class Plugin extends JavaPlugin {
   private ConfigHandler worldConfig;
   private WeatherController weatherController;
   private Map<String,WeatherController> weatherControllerList = new HashMap<>();
+  private EffectsTimer effectsTimer;
 
   public void onEnable() {
     
@@ -45,10 +47,8 @@ public class Plugin extends JavaPlugin {
 
     getServer().getPluginManager().registerEvents(new WorldGuardListener(), this);
 
-    //Load WeatherListener for each weatherController/world
-    for(String worldName : worldsinConfig) {
-      getServer().getPluginManager().registerEvents(new WeatherListener(worldConfig,weatherControllerList.get(worldName)), this);
-    }
+    //Load WeatherListener
+    getServer().getPluginManager().registerEvents(new WeatherListener(worldConfig,weatherControllerList, effectsTimer), this);
 
     LOGGER.info("AVWeather has been enabled");
   }
@@ -59,6 +59,7 @@ public class Plugin extends JavaPlugin {
     for (WeatherController controller : weatherControllerList.values()) {
       controller.stopTimeScheduler();
     }
+    effectsTimer.stopTimeScheduler();
 
     LOGGER.info("AV Weather has been disabled");
   }

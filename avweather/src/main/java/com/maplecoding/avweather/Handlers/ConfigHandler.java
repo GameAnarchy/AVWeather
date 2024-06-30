@@ -2,10 +2,8 @@ package com.maplecoding.avweather.Handlers;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.bukkit.configuration.file.FileConfiguration;
@@ -139,5 +137,39 @@ public class ConfigHandler {
     public FileConfiguration getConfig()
     {
         return config;
+    }
+
+
+    // *************************
+    // WORLD CONFIG METHODS
+    // *************************
+    //Get boolean for plugin enabled
+    public boolean isEnabled(String worldName) {
+        String key = "worlds." + worldName + ".general.enable";
+        return config.getBoolean(key);
+    }
+
+    //Get boolean for loading temperature areas
+    public boolean canTemperature(String worldName) {
+        String key = "worlds." + worldName + ".temperature.enableTemperature";
+        return (isEnabled(worldName) && config.getBoolean(key));
+    }
+
+    //Get boolean for loading seasons
+    public boolean canSeasons(String worldName) {
+        String key = "worlds." + worldName + ".seasons.enableSeasons";
+        return (canTemperature(worldName) && config.getBoolean(key));
+    }
+
+    //Get boolean for loading seasonal weathers
+    public boolean canSeasonalWeather(String worldName) {
+        String key = "world." + worldName + ".seasons.enableSeasonalWeather";
+        return (canSeasons(worldName) && config.getBoolean(key));
+    }
+
+    //Get boolean for applying temperature/weather effects
+    public boolean canWeatherEffects(String worldName) {
+        String key = "world." + worldName + ".weather.enableWeatherEffects";
+        return (canSeasonalWeather(worldName) && config.getBoolean(key));
     }
 }

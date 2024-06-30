@@ -2,9 +2,9 @@ package com.maplecoding.avweather.Listeners;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -15,18 +15,47 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import com.maplecoding.avweather.Handlers.ConfigHandler;
-
+import com.maplecoding.avweather.Handlers.EffectsTimer;
+import com.maplecoding.avweather.Handlers.WeatherController;
 import net.md_5.bungee.api.ChatColor;
 
 public class WeatherListener implements Listener{
     
     private final FileConfiguration worldConfig;
-    private final WeatherController weatherController;
-    private final Map<Player, String> playerTemperatures = new HashMap<>();
+    private final Map<String,WeatherController> weatherControllerList;
+    private final EffectsTimer effectsTimer;
 
-    public WeatherListener(ConfigHandler worldHandler, WeatherController weatherController){
+    private Map<String, Map<String,ConfigurationSection>> worldsTempRanges;
+    private final Map<Player, String> playerTemperatures = new HashMap<>();
+    private static final Logger LOGGER = Logger.getLogger("WeatherListener");
+
+    public WeatherListener(ConfigHandler worldHandler, Map<String, WeatherController> weatherControllerList, EffectsTimer effectsTimer){
         this.worldConfig = worldHandler.getConfig();
-        this.weatherController = weatherController;
+        this.weatherControllerList = weatherControllerList;
+        this.effectsTimer = effectsTimer;
+
+        //Get the ranges for each world
+        worldsTempRanges = getWorldsTempRanges();
+        LOGGER.info(worldsTempRanges.toString());
+    }
+
+    //Get World Ranges (X,Y,Z)
+    // Return an null if a range is empty
+    public ConfigurationSection getRanges(String world, String axis) {
+        return worldsTempRanges.get(world).get(axis);
+    }
+
+    //Get Temperature Ranges for each world in config
+    public Map<String, Map<String, ConfigurationSection>> getWorldsTempRanges() {
+        Map<String, Map<String,ConfigurationSection>> worldsTempRanges = new HashMap<>();
+        for(String world : worldConfig.getConfigurationSection("worlds").getKeys(false)) {
+            Map<String,ConfigurationSection> tempRanges = new HashMap<>();
+            tempRanges.put("X", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeX"));
+            tempRanges.put("Y", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeY"));
+            tempRanges.put("Z", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeZ"));
+            worldsTempRanges.put(world, tempRanges);
+        }
+        return worldsTempRanges;
     }
 
     //Get Player Temperature in location they joined
@@ -36,20 +65,17 @@ public class WeatherListener implements Listener{
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
-        Location loc = p.getLocation();
-        World world = p.getWorld();
+        String playerWorld = p.getWorld().getName();
 
-        //Ignore if incorrect world
-        if(!world.getName().equals(weatherController.getWorld())) {
-            return;
-        }
-
-        String key = "worlds."+ loc.getWorld().getName() +".temperature.";
-
-        //Check Temperature of Player's Z Range or default Temperature
+        //Check Temperature of Player's Range or default Temperature
+        String currentTemperature = "";
+        //Y has highest priority
+        currentTemperature = getTemperature(p, "Y", getRanges(playerWorld, "Y"));
+        //X has second priority
+        currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+        //Z has last priority
+        currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
         //And add them to the Map
-        ConfigurationSection rangeZ = worldConfig.getConfigurationSection(key+"rangeZ");
-        String currentTemperature = getTemperature(p, "Z", loc, rangeZ);
         playerTemperatures.put(p,currentTemperature);
         sendTemperatureMessage(p, currentTemperature);
             
@@ -65,30 +91,35 @@ public class WeatherListener implements Listener{
     //Get Player Temperature on Region Change or default Temperature
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent e) {
-        
-        World world = e.getPlayer().getLocation().getWorld();
-        //Ignore if incorrect world
-        if(!world.getName().equals(weatherController.getWorld())) {
-            return;
-        }
+
         //Only check temp if player moved a block
         Location from = e.getFrom();
         Location to = e.getTo();
         if((from.getZ() != to.getZ()) || (from.getY() != to.getY()) || (from.getX() != to.getX())) {
 
             Player p = e.getPlayer();
-            String key = "worlds." + p.getLocation().getWorld().getName() + ".temperature.";
+            String playerWorld = p.getLocation().getWorld().getName();
 
-            //Check Temperature of Player's Z Range
-            ConfigurationSection rangeZ = worldConfig.getConfigurationSection(key+"rangeZ");
-            String currentTemperature = getTemperature(p, "Z", to, rangeZ);
+            //Check Temperature of Player's Range
+            String currentTemperature = "";
+            //Y has highest priority
+            currentTemperature = getTemperature(p, "Y", getRanges(playerWorld, "Y"));
+            //X has second priority
+            currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+            //Z has last priority
+            currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
+
             String previousTemperature = playerTemperatures.get(p);
-            
-            //Inform player if new temperature
-            if(previousTemperature != null && currentTemperature != previousTemperature) {
-                playerTemperatures.put(p, currentTemperature);
-                //Get Season
 
+            //Ensures player is checked to map if they weren't in it
+            //(e.g. serve reload reinitializes the map)
+            if(previousTemperature == null) {
+                previousTemperature = "";
+            }
+            
+            //Inform player if moved to a new temperature range
+            if(!currentTemperature.equals(previousTemperature)) {
+                playerTemperatures.put(p, currentTemperature);
                 sendTemperatureMessage(p, currentTemperature);
             }
             
@@ -97,7 +128,8 @@ public class WeatherListener implements Listener{
 
     //Function to get the temperature from the ranges based on player location
     //If outside of range or null ranges, get default temperature in config
-    public String getTemperature(Player p, String axis, Location loc, ConfigurationSection rangeMap) {
+    public String getTemperature(Player p, String axis, ConfigurationSection rangeMap) {
+        Location loc = p.getLocation();
         if(rangeMap != null) {
             for(String range: rangeMap.getKeys(false)) {
                 
@@ -111,9 +143,11 @@ public class WeatherListener implements Listener{
                         break;
                     case "Y":
                         playerLoc = loc.getBlockY();
+                        break;
                     case "Z":
                     default:
                         playerLoc = loc.getBlockZ();
+                        break;
                 }
 
                 if(range1 <= playerLoc && range2 >= playerLoc) {
@@ -122,16 +156,15 @@ public class WeatherListener implements Listener{
             }
         }
         //Get default temperature if not in a range or range is null
-        String key = "worlds." + loc.getWorld().getName() + ".temperature.defaultTemperature";
-        String defaultTemperature = worldConfig.getString(key);
-        return defaultTemperature;
+        String key = "worlds." + p.getWorld().getName() + ".temperature.defaultTemperature";
+        return worldConfig.getString(key);
         
     }
 
     public void sendTemperatureMessage(Player p, String temperature) {
-        
-        String currentSeason = weatherController.getTemperatureArea(temperature).getCurrentSeason().getName();
-        String currentWeather = weatherController.getTemperatureArea(temperature).getCurrentWeather();
+        String playerWorld = p.getWorld().getName();
+        String currentSeason = weatherControllerList.get(playerWorld).getTemperatureArea(temperature).getCurrentSeason().getName();
+        String currentWeather = weatherControllerList.get(playerWorld).getTemperatureArea(temperature).getCurrentWeather();
 
         switch(temperature) {
             case "HOT":
@@ -155,6 +188,7 @@ public class WeatherListener implements Listener{
         switch(currentSeason) {
             case "COLD":
                 subtitle = ChatColor.BLUE + subtitle;
+                
                 break;
             case "COOL": 
                 subtitle = ChatColor.AQUA + subtitle;
@@ -166,6 +200,10 @@ public class WeatherListener implements Listener{
         }
 
         p.sendTitle(temperature, subtitle, 10, 70, 20);
+    }
+
+    public void applyWeatherEffects() {
+
     }
 
 }
