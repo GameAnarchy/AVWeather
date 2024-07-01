@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.bukkit.Location;
+import org.bukkit.WeatherType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -27,6 +28,7 @@ public class WeatherListener implements Listener{
 
     private Map<String, Map<String,ConfigurationSection>> worldsTempRanges;
     private final Map<Player, String> playerTemperatures = new HashMap<>();
+    private final Map<String,Map<String,String>> worldNightChangeList;
     private static final Logger LOGGER = Logger.getLogger("WeatherListener");
 
     public WeatherListener(ConfigHandler worldHandler, Map<String, WeatherController> weatherControllerList, EffectsTimer effectsTimer){
@@ -36,26 +38,8 @@ public class WeatherListener implements Listener{
 
         //Get the ranges for each world
         worldsTempRanges = getWorldsTempRanges();
-        LOGGER.info(worldsTempRanges.toString());
-    }
-
-    //Get World Ranges (X,Y,Z)
-    // Return an null if a range is empty
-    public ConfigurationSection getRanges(String world, String axis) {
-        return worldsTempRanges.get(world).get(axis);
-    }
-
-    //Get Temperature Ranges for each world in config
-    public Map<String, Map<String, ConfigurationSection>> getWorldsTempRanges() {
-        Map<String, Map<String,ConfigurationSection>> worldsTempRanges = new HashMap<>();
-        for(String world : worldConfig.getConfigurationSection("worlds").getKeys(false)) {
-            Map<String,ConfigurationSection> tempRanges = new HashMap<>();
-            tempRanges.put("X", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeX"));
-            tempRanges.put("Y", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeY"));
-            tempRanges.put("Z", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeZ"));
-            worldsTempRanges.put(world, tempRanges);
-        }
-        return worldsTempRanges;
+        worldNightChangeList = getNightChanges();
+        LOGGER.info(worldNightChangeList.get("world").toString());
     }
 
     //Get Player Temperature in location they joined
@@ -69,12 +53,30 @@ public class WeatherListener implements Listener{
 
         //Check Temperature of Player's Range or default Temperature
         String currentTemperature = "";
+
         //Y has highest priority
         currentTemperature = getTemperature(p, "Y", getRanges(playerWorld, "Y"));
+
         //X has second priority
-        currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+        if(currentTemperature.equals("")) {
+            currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+        }
+
         //Z has last priority
-        currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
+        if(currentTemperature.equals("")) {
+            currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
+        }
+
+        //Default temperature if no range was provided
+        if(currentTemperature.equals("")) {
+            currentTemperature = getDefaultTemperature(p);
+        }
+
+        //Check Night Temp Changes
+        if(weatherControllerList.get(playerWorld).canApplyNightChange()) {
+            currentTemperature = worldNightChangeList.get(playerWorld).get(currentTemperature);
+        }
+
         //And add them to the Map
         playerTemperatures.put(p,currentTemperature);
         sendTemperatureMessage(p, currentTemperature);
@@ -102,12 +104,29 @@ public class WeatherListener implements Listener{
 
             //Check Temperature of Player's Range
             String currentTemperature = "";
+            
             //Y has highest priority
             currentTemperature = getTemperature(p, "Y", getRanges(playerWorld, "Y"));
+
             //X has second priority
-            currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+            if(currentTemperature.equals("")) {
+                currentTemperature = getTemperature(p, "X", getRanges(playerWorld, "X"));
+            }
+
             //Z has last priority
-            currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
+            if(currentTemperature.equals("")) {
+                currentTemperature = getTemperature(p, "Z", getRanges(playerWorld, "Z"));
+            }
+
+            //Default temperature if no range was provided
+            if(currentTemperature.equals("")) {
+                currentTemperature = getDefaultTemperature(p);
+            }
+
+            //Check Night Temp Changes
+            if(weatherControllerList.get(playerWorld).canApplyNightChange()) {
+                currentTemperature = worldNightChangeList.get(playerWorld).get(currentTemperature);
+            }
 
             String previousTemperature = playerTemperatures.get(p);
 
@@ -124,6 +143,38 @@ public class WeatherListener implements Listener{
             }
             
         }               
+    }
+
+    //Get World Ranges (X,Y,Z)
+    // Return an null if a range is empty
+    public ConfigurationSection getRanges(String world, String axis) {
+        return worldsTempRanges.get(world).get(axis);
+    }
+
+    //Get Temperature Ranges for each world in config
+    public Map<String, Map<String, ConfigurationSection>> getWorldsTempRanges() {
+        Map<String, Map<String,ConfigurationSection>> worldsTempRanges = new HashMap<>();
+        for(String world : worldConfig.getConfigurationSection("worlds").getKeys(false)) {
+            Map<String,ConfigurationSection> tempRanges = new HashMap<>();
+            tempRanges.put("X", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeX"));
+            tempRanges.put("Y", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeY"));
+            tempRanges.put("Z", worldConfig.getConfigurationSection("worlds." + world + ".temperature.rangeZ"));
+            worldsTempRanges.put(world, tempRanges);
+        }
+        return worldsTempRanges;
+    }
+
+    //Gt Night Change Info
+    public Map<String,Map<String,String>> getNightChanges() {
+        Map<String,Map<String,String>> nightChangeList = new HashMap<>();
+        for(String world: worldConfig.getConfigurationSection("worlds").getKeys(false)) {
+            Map<String, String> nightChange = new HashMap<>();
+            for(String dayTemp: worldConfig.getConfigurationSection("worlds." + world + ".temperature.nightChange").getKeys(false)) {
+                nightChange.put(dayTemp, worldConfig.getString("worlds." + world + ".temperature.nightChange." + dayTemp));
+            }
+            nightChangeList.put(world, nightChange);
+        }
+        return nightChangeList;
     }
 
     //Function to get the temperature from the ranges based on player location
@@ -155,10 +206,13 @@ public class WeatherListener implements Listener{
                 }
             }
         }
+        return "";        
+    }
+
+    public String getDefaultTemperature(Player p) {
         //Get default temperature if not in a range or range is null
         String key = "worlds." + p.getWorld().getName() + ".temperature.defaultTemperature";
         return worldConfig.getString(key);
-        
     }
 
     public void sendTemperatureMessage(Player p, String temperature) {

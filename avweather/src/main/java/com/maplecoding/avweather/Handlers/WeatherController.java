@@ -30,6 +30,9 @@ public class WeatherController {
 
     private Logger LOGGER = Logger.getLogger("AvWeather");
 
+    private long nightStartTick = 13000;
+    private long nightEndTick = 23999;
+    private boolean canNight = false;
     private boolean isNight = false;
 
     private ConfigHandler worldHandler;
@@ -53,6 +56,10 @@ public class WeatherController {
         this.timeCheckInterval = worldConfig.getInt(key+"checkTimeInterval");
     
         this.temperatureAreas = loadTemperatureAreas();
+
+        this.nightStartTick = worldConfig.getLong("worlds."+world.getName()+".temperature.nightTickStart");
+        this.nightEndTick = worldConfig.getLong("worlds."+world.getName()+".temperature.nightTickEnd");
+        this.canNight = worldHandler.canNightChange(world.getName());
     }
 
     private Map<String, TemperatureArea> loadTemperatureAreas() {
@@ -151,6 +158,12 @@ public class WeatherController {
         return world;
     }
 
+
+
+    public boolean canApplyNightChange() {
+        return (canNight && isNight);
+    }
+
     public void startTimeScheduler() {
         timeScheduler = new BukkitRunnable() {
             
@@ -185,8 +198,9 @@ public class WeatherController {
                     LOGGER.info("SeasonLength: " + seasonLength);
                 }
 
-                if(currentTimeTicks >= 13000) {
+                if(currentTimeTicks >= nightStartTick && currentTimeTicks <= nightEndTick) {
                     isNight = true;
+                    LOGGER.info("Night applied");
                 } else {
                     isNight = false;
                 }

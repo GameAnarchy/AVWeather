@@ -155,6 +155,11 @@ public class ConfigHandler {
         return (isEnabled(worldName) && config.getBoolean(key));
     }
 
+    public boolean canNightChange(String worldName) {
+        String key = "worlds." + worldName + ".temperature.enableTemperatureNightChange";
+        return config.getBoolean(key);
+    }
+
     //Get boolean for loading seasons
     public boolean canSeasons(String worldName) {
         String key = "worlds." + worldName + ".seasons.enableSeasons";
